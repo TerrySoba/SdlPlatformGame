@@ -26,8 +26,13 @@ add_library(game_lib STATIC
     DosPlatformGame/source/rectangle.cpp
     DosPlatformGame/source/physics.cpp
     DosPlatformGame/source/time_tools.cpp
+    DosPlatformGame/source/sprite.cpp
+    DosPlatformGame/source/framebuffer_gfx.cpp
     # DosPlatformGame/source/compiled_sprite.cpp
 )
+
+target_compile_options(game_lib PRIVATE -fsanitize=address)
+target_link_options(game_lib PRIVATE -fsanitize=address)
 
 target_include_directories(game_lib PUBLIC DosPlatformGame/source)
 set(TEST_DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/DosPlatformGame/testdata/")
@@ -45,6 +50,7 @@ add_executable(test
     # DosPlatformGame/source/animation_test.cpp
     DosPlatformGame/source/blit_test.cpp
     # DosPlatformGame/source/compiled_sprite_test.cpp
+    DosPlatformGame/source/sprite_test.cpp
     DosPlatformGame/source/credits_loader_test.cpp
     DosPlatformGame/source/font_test.cpp
     DosPlatformGame/source/font_writer_test.cpp
@@ -68,7 +74,11 @@ target_include_directories(test PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR}/DosPlatformGame/source
 )
 
-target_link_libraries(test PRIVATE game_lib)    
+target_link_libraries(test PRIVATE game_lib)
+
+# Enable AddressSanitizer for the test target
+target_compile_options(test PRIVATE -fsanitize=address)
+target_link_options(test PRIVATE -fsanitize=address)
 
 # Link to the actual SDL3 library.
 target_link_libraries(SdlPlatformGame PRIVATE SDL3::SDL3)
