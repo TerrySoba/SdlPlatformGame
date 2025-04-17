@@ -1,5 +1,6 @@
 #include "platform/sdl/sound_controller_sdl.h"
 #include "platform/sdl/music_controller_sdl.h"
+#include "platform/sdl/keyboard_sdl.h"
 #include "framebuffer_gfx.h"
 #include "shared_ptr.h"
 #include "i18n.h"
@@ -13,6 +14,7 @@
 #include <iostream>
 #include <memory>
 #include <cmath>
+#include <map>
 
 class GameWrapper {
 public:
@@ -146,7 +148,67 @@ int runGame() {
 }
 
 
+class ScreenSizeHelper {
+public:
+    ScreenSizeHelper(uint32_t windowWidth, uint32_t windowHeight, float aspectRatio)
+    {
+        setWindowSize(windowWidth, windowHeight, aspectRatio);
+    }
+
+    void setWindowSize(uint32_t width, uint32_t height, float aspectRatio)
+    {
+        m_windowWidth = width;
+        m_windowHeight = height;
+        m_aspectRatio = aspectRatio;
+
+        if (m_aspectRatio > (float)width / (float)height) {
+            // horizontal is the limiting factor
+            m_renderWidth = m_windowWidth;
+            m_renderHeight = static_cast<uint32_t>(m_windowWidth / aspectRatio);
+        } else {
+            // vertical is the limiting factor
+            m_renderHeight = m_windowHeight;
+            m_renderWidth = static_cast<uint32_t>(m_windowHeight * aspectRatio);
+        }
+      
+        m_renderOffsetX = (m_windowWidth - m_renderWidth) / 2;
+        m_renderOffsetY = (m_windowHeight - m_renderHeight) / 2;
+    }
+
+    uint32_t getRenderOffsetX() const
+    {
+        return m_renderOffsetX;
+    }
+    uint32_t getRenderOffsetY() const
+    {
+        return m_renderOffsetY;
+    }
+    uint32_t getRenderWidth() const
+    {
+        return m_renderWidth;
+    }
+    uint32_t getRenderHeight() const
+    {
+        return m_renderHeight;
+    }
+
+private:
+    uint32_t m_windowWidth;
+    uint32_t m_windowHeight;
+    float m_aspectRatio;
+    uint32_t m_renderWidth;
+    uint32_t m_renderHeight;
+    uint32_t m_renderOffsetX;
+    uint32_t m_renderOffsetY;
+
+};
+
+
 int main() {
+    const uint32_t gameWindowResolutionWidth = 1920;
+    const uint32_t gameWindowResolutionHeight = 1080;
+    const float dosGameAspectRatio = 4.0 / 3.0;
+
     try {
         std::cout << "Hello, World!" << std::endl;
 
@@ -155,7 +217,7 @@ int main() {
             return 1;
         }
 
-        std::shared_ptr<SDL_Window> win(SDL_CreateWindow("Hello SDL", 1920, 1080, 0), SDL_DestroyWindow);
+        std::shared_ptr<SDL_Window> win(SDL_CreateWindow("Hello SDL", gameWindowResolutionWidth, gameWindowResolutionHeight, 0), SDL_DestroyWindow);
         if (!win) {
             std::cerr << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
             SDL_Quit();
@@ -169,7 +231,12 @@ int main() {
             return 1;
         }
 
-        SDL_SetRenderVSync(ren.get(), 1);
+        if (!SDL_SetRenderVSync(ren.get(), SDL_RENDERER_VSYNC_ADAPTIVE))
+        {
+            std::cerr << "SDL_SetRenderVSync Error: " << SDL_GetError() << std::endl;
+            SDL_Quit();
+            return 1;
+        }
 
         std::shared_ptr<SDL_Surface> bmp(SDL_LoadBMP("example.bmp"), SDL_DestroySurface);
         if (!bmp) {
@@ -187,12 +254,33 @@ int main() {
             return 1;
         }
 
+        SDL_SetTextureScaleMode(tex.get(), SDL_SCALEMODE_NEAREST);
+
 
         bool quit = false;
         SDL_Event e;
 
 
         GameWrapper gameWrapper(tex);
+
+        uint32_t targetFps = 70;
+
+        uint32_t targetFrameTime = 1000 / targetFps;
+        uint64_t lastFrameTime = SDL_GetTicks();
+
+        ScreenSizeHelper screenSizeHelper(gameWindowResolutionWidth, gameWindowResolutionHeight, dosGameAspectRatio);
+
+        std::map<SDL_Keycode, volatile uint8_t*> keyMap
+        {   
+            {SDLK_UP, &s_keyUp},
+            {SDLK_DOWN, &s_keyDown},
+            {SDLK_LEFT, &s_keyLeft},
+            {SDLK_RIGHT, &s_keyRight},
+            {SDLK_LCTRL, &s_keyCtrl},
+            {SDLK_LALT, &s_keyAlt},
+            {SDLK_SPACE, &s_keySpace},
+            {SDLK_ESCAPE, &s_keyEsc},
+        };
 
         while (!quit) {
             while (SDL_PollEvent(&e)) {
@@ -201,26 +289,57 @@ int main() {
                         quit = true;
                         break;
                     case SDL_EVENT_KEY_DOWN:
-                        quit = true;
+                    {
+                        auto it = keyMap.find(e.key.key);
+                        if (it != keyMap.end()) {
+                            *(it->second) = true;
+                        }
                         break;
+                    }
+                    case SDL_EVENT_KEY_UP:
+                    {
+                        auto it = keyMap.find(e.key.key);
+                        if (it != keyMap.end()) {
+                            *(it->second) = false;
+                        }
+                        break;
+                    }
                     default:
                         break;
                 }
             }
 
             // get mouse position
-            float x, y;
-            SDL_GetMouseState(&x, &y);
+            // float x, y;
+            // SDL_GetMouseState(&x, &y);
             // std::cout << "Mouse position: " << x << ", " << y << std::endl;
 
+   
+            int64_t frameTime = SDL_GetTicks() - lastFrameTime;
+        
+            // std::cout << "Frame time: " << frameTime << std::endl;
+
             // draw the frame
-            gameWrapper.drawFrame();
+            while (frameTime > targetFrameTime) {
+                
+                frameTime -= targetFrameTime;
+                gameWrapper.drawFrame();
+                
+                SDL_RenderClear(ren.get());
+                SDL_FRect dst = {
+                    screenSizeHelper.getRenderOffsetX(), screenSizeHelper.getRenderOffsetY(),
+                    screenSizeHelper.getRenderWidth(), screenSizeHelper.getRenderHeight()};
+                SDL_RenderTexture(ren.get(), tex.get(), nullptr, &dst);
+                SDL_RenderPresent(ren.get());
 
+                lastFrameTime = SDL_GetTicks();
+            }
 
-            SDL_RenderClear(ren.get());
-            SDL_FRect dst = {roundf(x), roundf(y), 640, 480};
-            SDL_RenderTexture(ren.get(), tex.get(), nullptr, &dst);
-            SDL_RenderPresent(ren.get());
+            // wait for the next frame
+            int64_t sleepTime = targetFrameTime - frameTime;
+            if (sleepTime > 0) {
+                SDL_Delay(sleepTime);
+            }
         }
 
     
