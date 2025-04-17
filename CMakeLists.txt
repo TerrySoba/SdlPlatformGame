@@ -44,6 +44,8 @@ add_library(game_lib STATIC
 
     DosPlatformGame/source/platform/sdl/keyboard_sdl.cpp
     DosPlatformGame/source/platform/sdl/joystick_sdl.cpp
+
+    sdl_gfx.cpp
 )
 
 string(TIMESTAMP CMAKE_BUILD_DATE "%Y-%m-%d")
@@ -58,6 +60,9 @@ target_include_directories(game_lib PUBLIC DosPlatformGame/source)
 add_executable(SdlPlatformGame main.cpp)
 target_link_libraries(SdlPlatformGame PRIVATE game_lib)
 target_compile_definitions(SdlPlatformGame PRIVATE PLATFORM_SDL BUILD_DATE="${CMAKE_BUILD_DATE}")
+target_link_libraries(SdlPlatformGame PRIVATE SDL3::SDL3)
+
+install(TARGETS SDL3-shared DESTINATION bin)
 
 install(TARGETS SdlPlatformGame DESTINATION bin)
 
@@ -122,5 +127,4 @@ target_link_libraries(test PRIVATE game_lib)
 target_compile_options(test PRIVATE -fsanitize=address)
 target_link_options(test PRIVATE -fsanitize=address)
 
-# Link to the actual SDL3 library.
-target_link_libraries(SdlPlatformGame PRIVATE SDL3::SDL3)
+
