@@ -205,8 +205,8 @@ private:
 
 
 int main() {
-    const uint32_t gameWindowResolutionWidth = 1920;
-    const uint32_t gameWindowResolutionHeight = 1080;
+    const uint32_t gameWindowResolutionWidth = 1280;
+    const uint32_t gameWindowResolutionHeight = 720;
     const float dosGameAspectRatio = 4.0 / 3.0;
 
     try {
@@ -238,12 +238,12 @@ int main() {
             return 1;
         }
 
-        std::shared_ptr<SDL_Surface> bmp(SDL_LoadBMP("example.bmp"), SDL_DestroySurface);
-        if (!bmp) {
-            std::cerr << "SDL_LoadBMP Error: " << SDL_GetError() << std::endl;
-            SDL_Quit();
-            return 1;
-        }
+        // std::shared_ptr<SDL_Surface> bmp(SDL_LoadBMP("example.bmp"), SDL_DestroySurface);
+        // if (!bmp) {
+        //     std::cerr << "SDL_LoadBMP Error: " << SDL_GetError() << std::endl;
+        //     SDL_Quit();
+        //     return 1;
+        // }
 
         // std::shared_ptr<SDL_Texture> tex(SDL_CreateTextureFromSurface(ren.get(), bmp.get()), SDL_DestroyTexture);
         
@@ -263,7 +263,7 @@ int main() {
 
         GameWrapper gameWrapper(tex);
 
-        uint32_t targetFps = 70;
+        uint32_t targetFps = 75;
 
         uint32_t targetFrameTime = 1000 / targetFps;
         uint64_t lastFrameTime = SDL_GetTicks();
@@ -307,6 +307,11 @@ int main() {
                     default:
                         break;
                 }
+            }
+
+            if (s_keyEsc)
+            {
+                quit = true;
             }
 
             // get mouse position

@@ -1,15 +1,17 @@
 cmake_minimum_required(VERSION 3.16)
 project(SdlPlatformGame)
 
+find_package(SDL3 REQUIRED)
+
 set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}")
 
 # set the output directory for built objects.
 # This makes sure that the dynamic library goes into the build directory automatically.
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
+#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
+#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 
 # This assumes the SDL source is available in vendored/SDL
-add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
+#add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
 
 add_library(game_lib STATIC
     DosPlatformGame/source/tga_image.cpp
@@ -62,7 +64,7 @@ target_link_libraries(SdlPlatformGame PRIVATE game_lib)
 target_compile_definitions(SdlPlatformGame PRIVATE PLATFORM_SDL BUILD_DATE="${CMAKE_BUILD_DATE}")
 target_link_libraries(SdlPlatformGame PRIVATE SDL3::SDL3)
 
-install(TARGETS SDL3-shared DESTINATION bin)
+# install(TARGETS SDL3-shared DESTINATION bin)
 
 install(TARGETS SdlPlatformGame DESTINATION bin)
 
