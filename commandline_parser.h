@@ -7,10 +7,10 @@
 
 struct CommandLineParameters
 {
-    uint32_t screenWidth;
-    uint32_t screenHeight;
+    uint32_t screenWidth = 0;
+    uint32_t screenHeight = 0;
     std::string sdlRenderer;
-    bool fullscreen;
+    bool fullscreen = false;
 };
 
 std::optional<CommandLineParameters> parseCommandLine(int argc, char* argv[]);
