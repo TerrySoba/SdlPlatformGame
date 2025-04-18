@@ -48,6 +48,7 @@ add_library(game_lib STATIC
     DosPlatformGame/source/platform/sdl/joystick_sdl.cpp
 
     sdl_gfx.cpp
+    commandline_parser.cpp
 )
 
 string(TIMESTAMP CMAKE_BUILD_DATE "%Y-%m-%d")

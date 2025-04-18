@@ -8,6 +8,7 @@
 #include "credits_scroller.h"
 #include "exception.h"
 #include "sdl_gfx.h"
+#include "commandline_parser.h"
 
 #include <SDL3/SDL.h>
 
@@ -132,9 +133,25 @@ private:
 };
 
 
-int main() {
-    const uint32_t gameWindowResolutionWidth = 2304;
-    const uint32_t gameWindowResolutionHeight = 1728;
+int main(int argc, char* argv[]) {
+    auto params = parseCommandLine(argc, argv);
+
+    if (!params) {
+        SDL_LogError(1, "Failed to parse command line arguments.");
+        return 1;
+    }
+
+    if (params->sdlRenderer == "list") {
+        SDL_Log("Available renderer drivers:");
+        for (int i = 0; i < SDL_GetNumRenderDrivers(); i++)
+        {
+            SDL_Log("%d. %s", i + 1, SDL_GetRenderDriver(i));
+        }
+        return 1;
+    }
+
+    const uint32_t gameWindowResolutionWidth = params->screenWidth;
+    const uint32_t gameWindowResolutionHeight = params->screenHeight;
     const float dosGameAspectRatio = 4.0 / 3.0;
 
     try {
@@ -155,14 +172,21 @@ int main() {
             std::cerr << "Failed to get video driver." << std::endl;
         }
 
-        std::shared_ptr<SDL_Window> win(SDL_CreateWindow("Hello SDL", gameWindowResolutionWidth, gameWindowResolutionHeight, 0), SDL_DestroyWindow);
+        SDL_WindowFlags windowFlags = 0;
+        if (params->fullscreen) {
+            windowFlags |= SDL_WINDOW_FULLSCREEN;
+        }
+
+        std::shared_ptr<SDL_Window> win(SDL_CreateWindow("SdlPlatformGame", gameWindowResolutionWidth, gameWindowResolutionHeight, windowFlags), SDL_DestroyWindow);
         if (!win) {
             std::cerr << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
             SDL_Quit();
             return 1;
         }
 
-        std::shared_ptr<SDL_Renderer> ren(SDL_CreateRenderer(win.get(), "vulkan"), SDL_DestroyRenderer);
+        const char* rendererName = params->sdlRenderer.empty() ? nullptr : params->sdlRenderer.c_str();
+
+        std::shared_ptr<SDL_Renderer> ren(SDL_CreateRenderer(win.get(), rendererName), SDL_DestroyRenderer);
         if (!ren) {
             std::cerr << "SDL_CreateRenderer Error: " << SDL_GetError() << std::endl;
             SDL_Quit();
