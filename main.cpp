@@ -169,12 +169,12 @@ int main() {
             return 1;
         }
 
-        if (!SDL_SetRenderVSync(ren.get(), SDL_RENDERER_VSYNC_ADAPTIVE))
-        {
-            std::cerr << "SDL_SetRenderVSync Error: " << SDL_GetError() << std::endl;
-            SDL_Quit();
-            return 1;
-        }
+        // if (!SDL_SetRenderVSync(ren.get(), 2))
+        // {
+        //     std::cerr << "SDL_SetRenderVSync Error: " << SDL_GetError() << std::endl;
+        //     SDL_Quit();
+        //     return 1;
+        // }
 
         // std::shared_ptr<SDL_Surface> bmp(SDL_LoadBMP("example.bmp"), SDL_DestroySurface);
         // if (!bmp) {
@@ -201,10 +201,10 @@ int main() {
 
         GameWrapper gameWrapper(tex);
 
-        uint32_t targetFps = 75;
+        uint32_t targetFps = 70;
 
-        uint32_t targetFrameTime = 1000 / targetFps;
-        uint64_t lastFrameTime = SDL_GetTicks();
+        uint64_t targetFrameTimeNs = 1e9 / targetFps;
+        uint64_t lastFrameTimeNs = SDL_GetTicksNS();
 
         ScreenSizeHelper screenSizeHelper(gameWindowResolutionWidth, gameWindowResolutionHeight, dosGameAspectRatio);
 
@@ -220,7 +220,35 @@ int main() {
             {SDLK_ESCAPE, &s_keyEsc},
         };
 
-        while (!quit) {
+        int64_t frames = 0;
+        uint64_t frameCounterStartTime = SDL_GetTicksNS();
+
+        int64_t sleepAdjustment = 0;
+
+        // run main game loop
+        while (!quit)
+        {
+            int64_t now = SDL_GetTicksNS();
+            int64_t nsSinceLastFrame = now - lastFrameTimeNs;
+            lastFrameTimeNs = now;
+            if (nsSinceLastFrame > targetFrameTimeNs) {
+                sleepAdjustment -= 1e4;
+            } else {
+                sleepAdjustment += 1e4;
+            }
+
+            ++frames;
+            
+            gameWrapper.drawFrame();
+
+            SDL_RenderClear(ren.get());
+            SDL_FRect dst = {
+                (float)screenSizeHelper.getRenderOffsetX(), (float)screenSizeHelper.getRenderOffsetY(),
+                (float)screenSizeHelper.getRenderWidth(), (float)screenSizeHelper.getRenderHeight()};
+            SDL_RenderTexture(ren.get(), tex.get(), nullptr, &dst);
+            SDL_RenderPresent(ren.get());
+
+            // handle events
             while (SDL_PollEvent(&e)) {
                 switch (e.type) {
                     case SDL_EVENT_QUIT:
@@ -252,46 +280,24 @@ int main() {
                 quit = true;
             }
 
-            // get mouse position
-            // float x, y;
-            // SDL_GetMouseState(&x, &y);
-            // std::cout << "Mouse position: " << x << ", " << y << std::endl;
-
-   
-            int64_t frameTime = SDL_GetTicks() - lastFrameTime;
-        
-            // std::cout << "Frame time: " << frameTime << std::endl;
-
-            // draw the frame
-            while (frameTime > targetFrameTime) {
-                
-                frameTime -= targetFrameTime;
-                gameWrapper.drawFrame();
-                
-                SDL_RenderClear(ren.get());
-                SDL_FRect dst = {
-                    (float)screenSizeHelper.getRenderOffsetX(), (float)screenSizeHelper.getRenderOffsetY(),
-                    (float)screenSizeHelper.getRenderWidth(), (float)screenSizeHelper.getRenderHeight()};
-                SDL_RenderTexture(ren.get(), tex.get(), nullptr, &dst);
-                SDL_RenderPresent(ren.get());
-
-                lastFrameTime = SDL_GetTicks();
-            }
-
             // wait for the next frame
-            int64_t sleepTime = targetFrameTime - frameTime;
-            if (sleepTime > 0) {
-                SDL_Delay(sleepTime);
+            int64_t sleepTimeNs = targetFrameTimeNs - (SDL_GetTicksNS() - lastFrameTimeNs);
+            if (sleepTimeNs > 0) {
+                // std::cout << "Sleeping for " << sleepAdjustment << " ns" << std::endl;
+                SDL_DelayPrecise(sleepTimeNs + sleepAdjustment);
             }
         }
 
-    
+        // Print the frame count
+        uint64_t frameCounterEndTime = SDL_GetTicksNS();
+        uint64_t frameCounterDuration = frameCounterEndTime - frameCounterStartTime;
+        double fps = (double)frames / ((double)frameCounterDuration / 1e9);
+        std::cout << "FPS: " << fps << std::endl;
+        std::cout << "Frames: " << frames << std::endl;
 
         SDL_Quit();
 
         std::cout << "Goodbye, frames:" << gameWrapper.getFrameCount() << std::endl;
-
-
     }
     catch(const Exception& e)
     {
