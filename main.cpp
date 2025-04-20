@@ -26,8 +26,7 @@ public:
         I18N::loadTranslations("strings.en");
         
         m_gfx.reset(new FramebufferGfx());
-        // Keyboard keyboard;
-    
+        
         GameExitCode exitCode = GAME_EXIT_QUIT;
         {
             tnd::shared_ptr<Animation> enemy(new Animation("enemy.ani", "enemy.tga"));
@@ -132,6 +131,8 @@ private:
 };
 
 
+
+
 int main(int argc, char* argv[]) {
     auto params = parseCommandLine(argc, argv);
 
@@ -225,22 +226,14 @@ int main(int argc, char* argv[]) {
 
         ScreenSizeHelper screenSizeHelper(gameWindowResolutionWidth, gameWindowResolutionHeight, dosGameAspectRatio);
 
-        std::map<SDL_Keycode, volatile uint8_t*> keyMap
-        {   
-            {SDLK_UP, &s_keyUp},
-            {SDLK_DOWN, &s_keyDown},
-            {SDLK_LEFT, &s_keyLeft},
-            {SDLK_RIGHT, &s_keyRight},
-            {SDLK_LCTRL, &s_keyCtrl},
-            {SDLK_LALT, &s_keyAlt},
-            {SDLK_SPACE, &s_keySpace},
-            {SDLK_ESCAPE, &s_keyEsc},
-        };
+        
 
         int64_t frames = 0;
         uint64_t frameCounterStartTime = SDL_GetTicksNS();
 
         int64_t sleepAdjustment = 0;
+
+        KeyboardSdl keyboard;
 
         // run main game loop
         while (!quit)
@@ -273,18 +266,12 @@ int main(int argc, char* argv[]) {
                         break;
                     case SDL_EVENT_KEY_DOWN:
                     {
-                        auto it = keyMap.find(e.key.key);
-                        if (it != keyMap.end()) {
-                            *(it->second) = true;
-                        }
+                        keyboard.keyDown(e.key.key);
                         break;
                     }
                     case SDL_EVENT_KEY_UP:
                     {
-                        auto it = keyMap.find(e.key.key);
-                        if (it != keyMap.end()) {
-                            *(it->second) = false;
-                        }
+                        keyboard.keyUp(e.key.key);
                         break;
                     }
                     default:
