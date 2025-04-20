@@ -42,7 +42,7 @@ add_library(game_lib STATIC
     DosPlatformGame/source/text.cpp
     DosPlatformGame/source/key_mapper.cpp
     DosPlatformGame/source/game_save.cpp
-
+    DosPlatformGame/source/keyboard.cpp
 
     DosPlatformGame/source/platform/sdl/keyboard_sdl.cpp
     DosPlatformGame/source/platform/sdl/joystick_sdl.cpp
