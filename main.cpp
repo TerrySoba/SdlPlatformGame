@@ -12,7 +12,6 @@
 
 #include <SDL3/SDL.h>
 
-#include <iostream>
 #include <memory>
 #include <cmath>
 #include <map>
@@ -155,21 +154,22 @@ int main(int argc, char* argv[]) {
     const float dosGameAspectRatio = 4.0 / 3.0;
 
     try {
-        std::cout << "Hello, World!" << std::endl;
+        SDL_Log("Initializing SDL.");
 
         if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) {
-            std::cerr << "SDL_InitSubSystem Error: " << SDL_GetError() << std::endl;
-            return 1;
+            throw Exception("SDL_InitSubSystem Error: ", SDL_GetError());
         }
+
+        std::shared_ptr<void> sdlCleanup(nullptr, [](void*) { SDL_Quit(); });
 
         const char *videoDriver = SDL_GetCurrentVideoDriver();
         if (videoDriver)
         {
-            std::cout << "Current video driver: " << videoDriver << std::endl;
+            SDL_Log("Current video driver: %s", videoDriver);
         }
         else
         {
-            std::cerr << "Failed to get video driver." << std::endl;
+            SDL_Log("Failed to get video driver.");
         }
 
         SDL_WindowFlags windowFlags = 0;
@@ -179,18 +179,14 @@ int main(int argc, char* argv[]) {
 
         std::shared_ptr<SDL_Window> win(SDL_CreateWindow("SdlPlatformGame", gameWindowResolutionWidth, gameWindowResolutionHeight, windowFlags), SDL_DestroyWindow);
         if (!win) {
-            std::cerr << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
-            SDL_Quit();
-            return 1;
+            throw Exception("SDL_CreateWindow Error: ", SDL_GetError());
         }
 
         const char* rendererName = params->sdlRenderer.empty() ? nullptr : params->sdlRenderer.c_str();
 
         std::shared_ptr<SDL_Renderer> ren(SDL_CreateRenderer(win.get(), rendererName), SDL_DestroyRenderer);
         if (!ren) {
-            std::cerr << "SDL_CreateRenderer Error: " << SDL_GetError() << std::endl;
-            SDL_Quit();
-            return 1;
+            throw Exception("SDL_CreateRenderer Error: ", SDL_GetError());
         }
 
         // if (!SDL_SetRenderVSync(ren.get(), 2))
@@ -211,13 +207,10 @@ int main(int argc, char* argv[]) {
         
         std::shared_ptr<SDL_Texture> tex(SDL_CreateTexture(ren.get(), SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, 320, 200), SDL_DestroyTexture);
         if (!tex) {
-            std::cerr << "SDL_CreateTextureFromSurface Error: " << SDL_GetError() << std::endl;
-            SDL_Quit();
-            return 1;
+            throw Exception("SDL_CreateTextureFromSurface Error: ", SDL_GetError());
         }
 
         SDL_SetTextureScaleMode(tex.get(), SDL_SCALEMODE_NEAREST);
-
 
         bool quit = false;
         SDL_Event e;
@@ -316,28 +309,27 @@ int main(int argc, char* argv[]) {
         uint64_t frameCounterEndTime = SDL_GetTicksNS();
         uint64_t frameCounterDuration = frameCounterEndTime - frameCounterStartTime;
         double fps = (double)frames / ((double)frameCounterDuration / 1e9);
-        std::cout << "FPS: " << fps << std::endl;
-        std::cout << "Frames: " << frames << std::endl;
+        SDL_Log("FPS: %f", fps);
+        SDL_Log("Frames: %ld", frames);
 
+        SDL_Log("Quitting SDL.");
         SDL_Quit();
 
-        std::cout << "Goodbye, frames:" << gameWrapper.getFrameCount() << std::endl;
+        SDL_Log("Goodbye, frames: %d", gameWrapper.getFrameCount());
     }
     catch(const Exception& e)
     {
-        printStr("Exception: ");
-        printStr(e.what());
-        printStr("\r\nerrno: ");
-
-        char buf[10];
-        intToString(errno, 10, buf, 10);
-        printStr(buf);
-        printStr("\r\n");
+        SDL_LogError(1, "Exception: %s\r\nerrno: %d", e.what(), errno);
+        return 1;
+    }
+    catch(const std::exception& e)
+    {
+        SDL_LogError(1, "std::exception: %s\r\nerrno: %d", e.what(), errno);
         return 1;
     }
     catch(...)
     {
-        printStr("Unknown exception.\r\n");
+        SDL_LogError(1, "Unknown exception.\r\n");
         return 1;
     }
 
