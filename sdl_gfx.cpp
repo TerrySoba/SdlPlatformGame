@@ -45,9 +45,9 @@ void SdlGfx::renderToMemory(void *buffer, uint32_t pitch, PixelFormat format)
     m_framebufferGfx->renderToMemory(buffer, pitch, format);
 }
 
-void SdlGfx::drawDeathEffect()
+uint32_t SdlGfx::drawDeathEffect()
 {
-    m_framebufferGfx->drawDeathEffect();
+    return m_framebufferGfx->drawDeathEffect();
 }
 
 void SdlGfx::fancyWipe(const ImageBase &image)

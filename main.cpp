@@ -23,8 +23,6 @@ public:
     {
         tnd::shared_ptr<SoundController> sound(new SoundControllerSdl());
 
-        I18N::loadTranslations("strings.en");
-        
         m_gfx.reset(new FramebufferGfx());
         
         GameExitCode exitCode = GAME_EXIT_QUIT;
@@ -155,6 +153,18 @@ int main(int argc, char* argv[]) {
     const float dosGameAspectRatio = 4.0 / 3.0;
 
     try {
+
+        if (params->language == "english") {
+            I18N::loadTranslations("strings.en");
+        }
+        else if (params->language == "german") {
+            I18N::loadTranslations("strings.de");
+        }
+        else
+        {
+            throw Exception("Unknown language: ", params->language.c_str());
+        }
+
         SDL_Log("Initializing SDL.");
 
         if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) {
@@ -176,6 +186,7 @@ int main(int argc, char* argv[]) {
         SDL_WindowFlags windowFlags = 0;
         if (params->fullscreen) {
             windowFlags |= SDL_WINDOW_FULLSCREEN;
+            SDL_HideCursor();
         }
 
         std::shared_ptr<SDL_Window> win(SDL_CreateWindow("SdlPlatformGame", gameWindowResolutionWidth, gameWindowResolutionHeight, windowFlags), SDL_DestroyWindow);
@@ -222,20 +233,18 @@ int main(int argc, char* argv[]) {
         uint32_t targetFps = 70;
 
         uint64_t targetFrameTimeNs = 1e9 / targetFps;
-        uint64_t lastFrameTimeNs = SDL_GetTicksNS();
+        
 
         ScreenSizeHelper screenSizeHelper(gameWindowResolutionWidth, gameWindowResolutionHeight, dosGameAspectRatio);
 
-        
-
         int64_t frames = 0;
-        uint64_t frameCounterStartTime = SDL_GetTicksNS();
-
         int64_t sleepAdjustment = 0;
 
         KeyboardSdl keyboard;
 
         // run main game loop
+        uint64_t lastFrameTimeNs = SDL_GetTicksNS();
+        uint64_t frameCounterStartTime = lastFrameTimeNs;
         while (!quit)
         {
             int64_t now = SDL_GetTicksNS();
