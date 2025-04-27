@@ -130,7 +130,6 @@ private:
 
 
 
-
 int main(int argc, char* argv[]) {
     auto params = parseCommandLine(argc, argv);
 

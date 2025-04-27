@@ -4,7 +4,7 @@
 
 std::optional<CommandLineParameters> parseCommandLine(int argc, char* argv[])
 {
-    CLI::App app{"Example CLI Application"};
+    CLI::App app{"SDL Platform Game"};
 
     CommandLineParameters params;
 
