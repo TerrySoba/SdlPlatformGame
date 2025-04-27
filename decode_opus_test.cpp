@@ -5,6 +5,8 @@
 
 #include "decode_opus.h"
 
+#include "exception.h"
+
 #include <vector>
 #include <string>
 #include <fstream>
@@ -40,4 +42,12 @@ TEST(OpusDecoderTest)
         // std::cout << "diff: " << diff << std::endl;
         ASSERT_TRUE(std::abs(diff) < 13);
     }
+}
+
+TEST(OpusDecoderTestException)
+{
+    ASSERT_THROW(
+        OpusDecoder decoder("non_existent.opus"),
+        Exception
+    );
 }

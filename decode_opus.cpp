@@ -2,6 +2,8 @@
 
 #include <opusfile.h>
 
+#include "exception.h"
+
 #include <iostream>
 #include <vector>
 #include <fstream>
@@ -15,6 +17,9 @@ OpusDecoder::OpusDecoder(const std::string& filename) :
 void OpusDecoder::rewind()
 {
     m_opusFile = std::shared_ptr<OggOpusFile>(op_open_file(m_filename.c_str(), nullptr), op_free);
+    if (!m_opusFile) {
+        throw Exception("Failed to open Opus file: ", m_filename.c_str());
+    }
 }
 
 uint32_t OpusDecoder::decode(int16_t* outputBuffer, uint32_t bufferSize)
