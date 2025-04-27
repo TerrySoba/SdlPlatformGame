@@ -1,17 +1,14 @@
 cmake_minimum_required(VERSION 3.16)
 project(SdlPlatformGame)
 
+set(CMAKE_CXX_STANDARD 23)
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(OPUS REQUIRED opusfile)
+
 find_package(SDL3 REQUIRED)
 
 set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}")
-
-# set the output directory for built objects.
-# This makes sure that the dynamic library goes into the build directory automatically.
-#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
-#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
-
-# This assumes the SDL source is available in vendored/SDL
-#add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
 
 add_library(game_lib STATIC
     DosPlatformGame/source/tga_image.cpp
@@ -50,6 +47,15 @@ add_library(game_lib STATIC
 
     sdl_gfx.cpp
     commandline_parser.cpp
+    decode_opus.cpp
+)
+
+target_include_directories(game_lib PRIVATE
+    ${OPUS_INCLUDE_DIRS}
+)
+
+target_link_libraries(game_lib PRIVATE
+    ${OPUS_LIBRARIES}
 )
 
 string(TIMESTAMP CMAKE_BUILD_DATE "%Y-%m-%d")
@@ -119,6 +125,7 @@ add_executable(test
     DosPlatformGame/source/tiny_string_test.cpp
     DosPlatformGame/source/unit_test.cpp
     DosPlatformGame/source/vector_test.cpp
+    decode_opus_test.cpp
 )
 
 target_include_directories(test PRIVATE
